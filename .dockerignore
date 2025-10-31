@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+*.egg-info/
+.env
+.venv/
+venv/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build outputs
+dist/
+build/

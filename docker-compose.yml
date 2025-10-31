@@ -1,0 +1,14 @@
+#version: "3.9"
+
+services:
+  water-meter-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nimaam/water-meter-ocr:latest  # change "nimaam" to your Docker Hub username if different
+    ports:
+      - "8080:8080"
+    # If you have env vars, uncomment and add them:
+    # environment:
+    #   - SOME_ENV=VALUE
+    restart: unless-stopped

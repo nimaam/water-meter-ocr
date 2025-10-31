@@ -39,3 +39,23 @@ curl -X POST http://localhost:8080/predict \
   -d "{\"image_b64\":\"$IMG_B64\"}"
 ```
 
+#Build
+```
+docker build -t nimaam/water-meter-ocr:latest .
+```
+
+#Test it locally
+```
+docker run --rm -p 8080:8080 nimaam/water-meter-ocr:latest
+# Now hit it from your browser or curl:
+# curl http://localhost:8080/
+```
+
+
+#Run
+```
+docker compose up --build
+```
+
+
+
