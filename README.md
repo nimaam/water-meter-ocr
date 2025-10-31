@@ -16,5 +16,13 @@ This project is designed for the automatic reading of water meter digits using d
 ## Contribution
 Your contributions are welcome! Feel free to report any issues or submit pull requests to enhance the project.
 
-![Digital-clock](https://github.com/MMD1426/WaterMeter-Reader/blob/main/src/test/output.png)
-# water-meter-ocr
+# How to use
+```
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+python main.py
+``` 
