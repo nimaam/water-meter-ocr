@@ -1,43 +1,40 @@
 # syntax=docker/dockerfile:1
-
 ARG PYTHON_VERSION=3.11
-
 FROM python:${PYTHON_VERSION}-slim AS runtime
 
-# Avoid interactive tzdata prompts etc.
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# System deps often needed by OpenCV / Pillow / Tesseract-based OCR stacks.
-# If your app doesn't need some of these, you can remove them later.
+# Avoid installing docs/manpages/locales to keep layers small
+RUN set -eux; \
+    echo 'path-exclude /usr/share/doc/*'         >  /etc/dpkg/dpkg.cfg.d/99_nodoc; \
+    echo 'path-exclude /usr/share/man/*'         >> /etc/dpkg/dpkg.cfg.d/99_nodoc; \
+    echo 'path-exclude /usr/share/locale/*'      >> /etc/dpkg/dpkg.cfg.d/99_nodoc; \
+    echo 'path-include /usr/share/locale/en*'    >> /etc/dpkg/dpkg.cfg.d/99_nodoc
+
+# Only what Tesseract + headless OpenCV typically need
+# (libglib is required by many wheels; skip libgl1 since we use opencv-python-headless)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential \
-      pkg-config \
-      libgl1 \
-      libglib2.0-0 \
       tesseract-ocr \
+      tesseract-ocr-eng \
+      libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+# Non-root user
 RUN useradd -m -u 10001 appuser
 WORKDIR /app
 
-# Copy and install Python deps first (for better layer caching)
-# Your repo said "requirement.txt"; to be robust, we accept either.
+# If your repo has "requirement.txt", copy it as requirements.txt for pip
 COPY requirement.txt* requirements.txt
+
+# Prefer headless OpenCV to avoid GL/Mesa pulls
+# (If your requirements already pin it, this is a no-op)
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt opencv-python-headless
 
-# Copy the rest of the application
 COPY . .
-
-# Expose the port your app listens on
 EXPOSE 8080
-
-# Drop privileges
 USER appuser
-
-# If your main entrypoint is "python3 main.py", keep it simple:
 CMD ["python", "main.py"]
