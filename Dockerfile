@@ -7,34 +7,36 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Avoid installing docs/manpages/locales to keep layers small
+# Keep apt small: no docs/manpages/locales
 RUN set -eux; \
-    echo 'path-exclude /usr/share/doc/*'         >  /etc/dpkg/dpkg.cfg.d/99_nodoc; \
-    echo 'path-exclude /usr/share/man/*'         >> /etc/dpkg/dpkg.cfg.d/99_nodoc; \
-    echo 'path-exclude /usr/share/locale/*'      >> /etc/dpkg/dpkg.cfg.d/99_nodoc; \
-    echo 'path-include /usr/share/locale/en*'    >> /etc/dpkg/dpkg.cfg.d/99_nodoc
+  echo 'path-exclude /usr/share/doc/*'      >  /etc/dpkg/dpkg.cfg.d/99_nodoc; \
+  echo 'path-exclude /usr/share/man/*'      >> /etc/dpkg/dpkg.cfg.d/99_nodoc; \
+  echo 'path-exclude /usr/share/locale/*'   >> /etc/dpkg/dpkg.cfg.d/99_nodoc; \
+  echo 'path-include /usr/share/locale/en*' >> /etc/dpkg/dpkg.cfg.d/99_nodoc
 
-# Only what Tesseract + headless OpenCV typically need
-# (libglib is required by many wheels; skip libgl1 since we use opencv-python-headless)
+# Minimal runtime deps (headless)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       tesseract-ocr \
       tesseract-ocr-eng \
       libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Non-root user
+# App setup
 RUN useradd -m -u 10001 appuser
 WORKDIR /app
 
-# If your repo has "requirement.txt", copy it as requirements.txt for pip
-COPY requirement.txt* requirements.txt
-
-# Prefer headless OpenCV to avoid GL/Mesa pulls
-# (If your requirements already pin it, this is a no-op)
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt opencv-python-headless
-
+# Bring the repo in first so we can see whichever requirements file you have
 COPY . .
+
+# Install Python deps, tolerating either filename (or none)
+RUN set -eux; \
+  REQ=""; \
+  if [ -f requirements.txt ]; then REQ=requirements.txt; \
+  elif [ -f requirement.txt ]; then REQ=requirement.txt; fi; \
+  python -m pip install --upgrade pip; \
+  if [ -n "$REQ" ]; then pip install --no-cache-dir -r "$REQ"; fi; \
+  pip install --no-cache-dir opencv-python-headless
+
 EXPOSE 8080
 USER appuser
 CMD ["python", "main.py"]
